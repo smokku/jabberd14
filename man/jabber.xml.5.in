@@ -1,0 +1,453 @@
+.TH jabber.xml 5 "02 Apr 2007" "@VERSION@" "jabberd14 project"
+.SH NAME
+jabber.xml \- jabberd daemon configuration file
+.SH SYNOPSIS
+The jabber daemon jabberd is configured by an XML configuration file. By
+default jabberd will read \fI@sysconfdir@/jabber.xml\fR. The \fB-c\fR
+command line option can be used to specify an alternate configuration file.
+.SH "FILE FORMAT"
+The configuration file has to be a valid XML document preferably in the
+UTF-8 charset (ASCII is valid subset of UTF-8).
+
+Within the following xpath expressions, the following namespace prefixes
+are used:
+
+default namespace: "jabber:server",
+browse: "jabber:iq:browse",
+cfg: "http://jabberd.org/ns/configfile",
+register: "jabber:iq:register",
+vcard: "vcard-temp",
+.TP
+.B <jabber/>
+This is the root element of the configuration file.
+.TP
+.B <service/>
+This element is an immediate child element of the <jabber/> root element.
+It defines a general purpose component in the jabber daemon. The jabber daemon
+will route all stanzas to this component that have a domain part in the
+destination JID that equals the id attribute or any defined additional
+domains this component is responsible for using the <host/> child element.
+An implementation or relation to an other process is defined using one of the
+following child elements: <accept/>, <connect/>, <dynamic/>, <exec/>, <load/>,
+<null/>. Any child elements in own namespaces are ignored by the core
+jabberd and can be used by components to store their own configuration.
+.TP
+.B <xdb/>
+This element is an immediate child element of the <jabber/> root element.
+It defines a component in the jabber daemon, that is responsible for XML
+data storage. This components internal address is defined by the id
+attribute. The <host/> child elements define for which domains this storage
+component is managing the data. An empty <host/> element defines, that it
+is responsible for all components. With the <ns/> child element you can
+limit the responsibility to XML chunks in a given set of namespaces. You
+can then for example define one storage component that handles rosters and
+an other that handles offline message storage.
+An implementation or relation to an other process is defined using on of the
+following child elements: <accept/>, <connect/>, <dynamic/>, <exec/>, <load/>,
+<null/>. Any child elements in own namespaces are ignored by the core jabberd
+and can be used by components to store their own configuration.
+.TP
+.B <log/>
+This element is an immediate child element of the <jabber/> root element.
+It defines a component in the jabber daemon, that acts as a logging sink.
+This components internal address is defined by the id attribute. The <host/>
+child elements define for which domains this logging sink is logging messages.
+An empty <host/> element defines, that it is responsible for all components.
+With the <logtype/> child element you can select the types of messages, that
+are handled by this component.
+Where to write the logging information is defined with one of the following
+child elements: <file/>, <stderr/>, <stdout/>, <to/>.
+With the <format/> child element you define the format of the logged message.
+.TP
+.B <io/>
+This element is an immediate child element of the <jabber/> root element.
+In this section of the configuration file you can define different settings
+that are related to the network I/O layer. This includes bandwidth limitations
+(using the <karma/> element), assigning X.509 certificates to sockets (using
+the <tls/> element), and to limit access to the server to specific IP address
+ranges (using the <allow/> and <deny/> elements).
+.TP
+.B <pidfile/>
+This element specifies to which file the server should write its process ID.
+If this file already exists when the server is started, it will fail. You
+have to remove stale pidfiles before starting the server yourself. If you
+omit this element, the server will not write nor check any pidfile.
+.TP
+.B <debug/>
+This element contains configuration settings controlling the output of
+debugging messages. These settings can be changed at server runtime, the
+server will reread them on receiving a SIGHUP signal.
+.TP
+The following elements are used inside the <service/>, <xdb/>, and <log/>
+elements, that are defining components. They are used to provide the jabberd
+process with information where it can find the component's implementation.
+.TP
+.B <load/>
+This element can be used inside any component definition. It specifies, that
+the implementation of the component can be found inside a shared object. Any
+child element of this element defines a shared object file and a method in
+this object. jabberd will load the shared object files which locations
+are defined in the cdata elements inside the child elements, the names of the
+elements are defining the functions that have to be called. An optional
+main attribute in the <load/> element define the main function in a component,
+that has to be used to initialize it.
+.TP
+.B <accept/>
+This element defines, that jabberd will wait for an incoming connection using
+the jabber:component:accept protocol defined in XEP-0114. With this it is
+possible to run components in their own process, even on different hosts
+and connect it to the main jabberd routing process. On the other end of the
+connection there can be an instance of jabberd again that uses a section
+with <connect/> to initiate the connection, but there are libraries in many
+programming languages available, that implement XEP-0114 as well.
+Inside this element you have to provide an <ip/> element, that defines the
+IPv4 or IPv6 address to listen on, a <port/> element that defines on which
+port the server will listen for the connection, and a <secret/> element, that
+defines a shared secret to authenticate the other peer.
+.TP
+.B <connect/>
+This element is the opposite of the <accept/> element. Jabberd will try to
+connect to an implementation of the jabber:component:accept protocol defined
+in XEP-0114.
+Inside this element you have to provide an <ip/> element, that defines the
+IPv4 or IPv6 address where to connect to, a <port/> element, that defines
+the destination port, and a <secret/> element, that defines a shared secret
+to authenticate to the other peer.
+.TP
+.B <file/>
+This element can only be used inside a <log/> section. It is used to specify
+that log messages should be appended to a text file.
+.TP
+.B <null/>
+This element specifies an empty component. Everything that is sent to a JabberID
+with the domain part of this component is silently discarded. It can be used
+to drop stanzas directed to entities on the Jabber network, that have
+disappeared (e.g. update.jabber.org).
+.TP
+.B <stderr/>
+This element can only be used inside a <log/> section. It is used to specify
+that log messages should be written to the standard error output stream.
+.TP
+.B <stdout/>
+This element is used to define, that the jabberd process is communicating
+with the process, that is implementing the component. It is the opposite
+of <exec/>. A process that is started by <exec/> in an other process can
+use <stdout/> to implement the other end of the connecting pipe.
+.TP
+.B <syslog/>
+This element can only be used inside a <log/> section. It is used to specify
+that log messages should be written to the syslog.
+.TP
+.B <to/>
+This element can only be used inside a <log/> section. It is used to
+reformat log packets as messages and resend them to an entity with the
+given JabberID. The JabberID is given as cdata child element.
+.TP
+.B <unsubscribe/>
+This element can only be used inside a <service/> section. It is used
+to bounce messages and iq queries and send unsubscribes to presences, that
+are received. It is intended to be used as a replacement for transports,
+that are removed from a server. It will remove the roster items of this
+transport from the users' rosters.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/browse:browse
+List of services, that should be returned as the result of a browsing or
+a service discovery request. The format is as in a browse result stanza.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/disco-info:disco/disco-info:identity
+Name of the Jabber server, that should be returned in a service discovery reply.
+If this is not configured, the FN field of the server's vCard
+(cfg:jabber/cfg:service/jsm:jsm/vcard:vCard/vcard:FN) is used.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:admin/reply
+Message, that should be returned to someone, that has sent a message to the
+servers address. (These messages are forwarded to all users having the 'adminmsg'
+ACL right.)
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:agents
+This configuration setting can contain a response of a iq get query
+in the jabber:iq:agents namespace. Using this is deprecated. You should
+not use this configuration setting. The jabber:iq:agents namespace is
+superseded by service discovery.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:archive
+Configure the JabberIDs where mod_log should send messages about created
+sessions to. The JabberIDs should be enclosed in a <service/> element.
+Multiple <service/> elements can be placed inside the <archive/> element.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:auth
+Redirect authentication handling (non-SASL only) to a component. The
+address of the component has to be given as the textual content of this
+configuration element. No default setting.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:history
+With this element, the session manager can be configured to send copies
+of received and sent messages to xdb. This can be used for logging or
+to implement web-based access to the message history. The history element
+contains two child elements: sent and recv. The sent element configures
+how messages sent by a user are handled. The recv element configures how
+messages received by a user are handled.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:maxusers
+The maximum number of users the server should expect per domain (more users
+will get handled, but it may have performance impacts). A prime number
+should be configured here. The default setting is 3001.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:mod_auth_crypt/jsm:hash
+The default password hashing algorithm used by mod_auth_crypt is crypt().
+With this setting you can select other algorithms by adding their name as
+the text inside this element. Currently the only other algorithm supported
+by mod_auth_crypt is "SHA1". It is not recommended to use mod_auth_crypt.
+With hashed passwords, you get problems when you want to migrate to
+SASL authentication.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:mod_offline
+With this it can be configured which messages are stored offline. The default
+is to only store normal and chat messages offline (bouncing headline and
+groupchat messages, dropping error messages). If the mod_offline element is
+present, only message types present in this element are stored offline.
+Use the following element names inside this element: <normal/>, <chat/>,
+<headline/>, <groupchat/>, and <error/>.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:mod_useridpolicy
+Define a policy for usernames, that should be enforced on account
+registration (i.e. already registered usernames are not affected). It is
+possible to block accounts from being registered based on special names
+(put the username inside a <forbidden/> element, e.g.
+<forbidden>root</forbidden>) or enforce length constraints on the
+username by defining a minimum and/or maximum length of the username
+in unicode characters (put the setting inside <minlen/> and <maxlen/>
+elements, e.g. <minlen>3</minlen>).
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:mod_version
+Modify the result to a jabber:iq:version request. With the <name/> element
+inside this configuration option, you can replace the product name, that
+is returned by the server. With the <version/> element, you can replace
+the returned product version. With the <os/> element, you can replace
+the operating system identification returned by mod_version. With the
+<no_os_version/> element, you can configured mod_version to return the
+name of the operating system, but not its version number.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:presence
+This configuration option can include two different elements: With the
+<presence2xdb/> element you configure jabberd14 to store all presences
+of the local users to xdb. Used together with xdb_sql this can be used
+to have the presence of your users in a SQL database, e.g. to use it
+to display web status indicators. (Please recognize the privacy issues
+with web indicators if you plan to implement this.) The other possible
+element inside this configuration option is <bcc/> which can be used
+multiple times. Inside the <bcc/> element you can place JabberIDs.
+All local presences are send to the configured JabberIDs as a copy.
+This can be used to forward presence to a component, that needs to know
+presence of all local users. (E.g. another way to implement a web presence
+indicator.)
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:regtimeout
+This configures the number of seconds an account gets blocked against
+reregistration after it has been unregistered. The value is specified
+as the timeout attribute of this element.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:serialization
+With this setting the session manager can be configured to store all
+necessary state information to restart the session manager to a file.
+This can be used to restart the session manager after a crash (or after
+it has been killed by a signal) without the user's sessions to be
+dropped. This can be used to reconfigure the session manager while
+it is running. Please note, that on very big jabberd14 installations
+you might get problems if you serialize the state to often.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/jsm:vcard2jud
+If the vCard a users sets should be forwarded to the first Jabber users
+directory, that is configured in cfg:jabber/cfg:service/jsm:jsm/browse:browse.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/register:register
+Reply stanza to a jabber:iq:register get request. This configures what
+a client gets asked, if a user tries an inband account registration.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/vcard:vCard
+The vCard, that gets returned, if a Jabber entity requests a vCard
+for the server. No default value.
+.TP
+.B jsm setting: cfg:jabber/cfg:service/jsm:jsm/welcome
+A message stanza, that should be sent to a new user. The content of the
+welcome element is used as the content of the generated message stanza.
+Therefore you should have a body element inside this one, and a subject
+element might be good to have as well. It is possible to use xml:lang
+attributes for the content of this element. No default setting, if
+element is missing, no welcome message is generated.
+.TP
+.B TLS settings: cfg:jabber/cfg:io/cfg:tls
+Inside this configuration element you find the settings, that configure
+how TLS is used inside jabberd14. Settings inside this element are
+grouped together using the <credentials/> element. Every set of settings
+defined within such an element is used for the set of domains, that
+are configured using the <domain/> element inside this element. If
+jabberd14 searches for settings and does not find a set that contains
+the relevant domain, it will search a set that contains the <default/>
+element. If even no such set is found, TLS is disabled for this domain.
+(Note: This is designed to be used with the STARTTLS mechanism of the
+XMPP protocol. If you are using legacy TLS connections for clients on
+port 5223, you have to configure the IP addresses your are listening
+on as domain as well. E.g. <domain>192.0.2.34</domain> if you are
+listening on port 5223 or the IP address 192.0.2.34.)
+Beside the <credentials/> element, there are three more valid elements,
+that can be placed inside the <tls/> element:
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:dhparams
+If this setting is not present, jabberd14 will generate parameters
+for Diffie Hellman keyexchanges on the fly when starting up. As this
+may take some time, you might want to use pre-calculated parameters.
+Use this setting to load them. Specify the filename containing the
+parameters as the content of this element. By default the file is
+expected to by PEM encoded. Add the flag type="der" if the file is
+DER encoded.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:cacertfile
+This setting defines a file containing certificates of the CAs jabberd14
+should trust when authenticating peers using certificates. These CA
+certificates are used as the default CAs and can be overwritten using
+the <ca/> element inside the <credentials/> elements for each set of
+TLS settings.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:crlfile
+This setting allows you to load a certificate revocation list from a file.
+Place the filename as the content of this element. By default the file is
+tried to be loaded as a PEM encoded file. If the file is DER encoded, please
+specify the type="der" attribute on this element.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:default
+Define that this set of TLS settings should be used when no explicit
+set of settings can be found for a domain.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:domain
+Bind a set of settings to a domain. The domain for which the set
+should be used has to be placed as the content of this element. No
+whitespace should be present in the content of this element. This element
+can be used multiple times inside the <credentials/> element to bind a
+set of settings to multiple domains.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:pem
+This setting is used to load a server certificate of a certificate
+chain, that is PEM encoded. By default jabberd14 tries to read the
+private key from the same file as the certificate. If you have your
+private key in a different file, please specify the filename of this
+file using the private-key attribute on the <pem/> element.
+If you have multiple certificates for the set of domains (e.g. a
+RSA and a DSA certificate) you can place multiple <pem/> elements
+inside a <credentials/> element. But if your certificates are for
+different domains, you have to place them in different <credentials/>
+elements.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:der
+This is the same setting as the <pem/> element, with the only
+difference that the file is expected to be DER encoded instead of
+PEM encoded. Please also note, that with DER encoded certificates
+you always have to place your private key in a different file, and
+therefore have to use the private-key attribute of the <der/> element.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:ca
+Load one or many certificates of CAs the server should trust to do
+certificate based authentication of peers. By default the file is expected
+to be PEM encoded. If the file is DER encoded, you have to add the type="der"
+attribute to this element. This element can be used multiple times to
+load multiple files.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:openpgp
+Load an OpenPGP key as certificate. Specify the file containing the public
+key as the content of this element and the file containing your private
+key using the private-key attribute of this element.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:keyring
+Load an OpenPGP keyring from the file specified using the content of this
+element.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:trustdb
+Load a GnuPG trust database from the file specified using the content of
+this element.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:protocols
+This setting is used to specify which version of the TLS protocol should be
+used and in which order they should be prefered. If you omit this setting,
+the protocols and their preference are defined by the used TLS library
+(GnuTLS) itself. Place the list of protocols in the order of their
+preference separated by whitespace as content of this element. Recognized
+values are: TLS1_2 for TLS version 1.2 (only known if jabberd14 is
+compiled with a TLS library supporting this version of TLS, otherwise
+ignored), TLS1_1 for TLS version 1.1, TLS1_0 for TLS version 1.0, and
+SSL3 for SSL version 3.0 (predecessor of TLS 1_0). SSL versions before
+3.0 are not supported by jabberd14 anymore as they are considered weak.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:kx
+This setting is used to specify which key exchange algorithms should be used
+and in which order they should be prefered. If you omit this setting, the
+algorithms and their preference are defined by the used TLS library (GnuTLS)
+itself. Place the list of algorithms in the order of their preference
+separated by whitespace as content of this element. Recognized values are:
+RSA for exchanging keys on a RSA encrypted channel, DHE_RSA for using a
+RSA signed Diffie Hellman keyexchange, DHE_DSS for using a DSS signed
+Diffie Hellman keyexchange. The DHE_* key exchanges might need a bit more
+computing power, but will result in a non-compromized key even if your
+certificate gets compromized. With a pure RSA key exchange the encrypted
+session gets readable if your RSA certificate gets compromized. For
+RSA and DHE_RSA keyexchanges you need a RSA certificate when being the server
+side of the connection, for the DHE_DSS key exchange you need a DSS
+certificate when being the server side of the connection. If you are the
+server (i.e. connected) side of the TLS connection, this setting will only
+select which key exchange algorithms you support/offer as it is the client's
+task to select one of the offered algorithms. Therefore the order of this
+setting is only relevant if you are the connecting side of a TLS connection.
+(Note: ANON_DH is supported as well and results in an anonymous Diffie
+Hellman keyexchange. Normally you do not want to enable this key exchange,
+please only enable it, if you know what you are doing.)
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:ciphers
+This setting is used to specify which cipher algorithms should be used and in
+which order they should be prefered. If you omit this setting, the ciphers
+and their preference are defined by the used TLS library (GnuTLS) itself.
+Place the list of ciphers in the order of their preference separated by
+whitespace as content of this element. Recognized values are:
+AES_256_CBC is the AES cipher using a 256 b key in CBC mode, AES_128_CBC is
+the AES cipher using a 128 b key in CBC mode, 3DES_CBC is the 3DES cipher
+using 168 b key (effective strength is considered to be only 112 b) in CBC
+mode, ARCFOUR_128 is the ARCFOUR stream cipher using a 128 b key.
+(The following ciphers are recognized as well, but you normally should not
+configure them: ARCFOUR_40, RC2_40_CBC, DES_CBC, NULL. Only allow these
+additional ciphers, if you know exactly what you are doing. They are
+considered to be weak ciphers.)
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:compression
+This setting is used to specify which compression algorithms should be used
+and in which order they should be prefered. If you omit this setting, the
+compression algorithms and their preference are defined by the used TLS
+library (GnuTLS) itself. With current versions of GnuTLS this means disabling
+compression. Therefore if you want to use TLS stream compression, you have
+to define this setting. Place the list of compression algorithms in the order
+of their preference separated by whitespace as content of this element.
+Recognized values are: LZO for compression using the LZO algorithm (only
+supported if GnuTLS extra has been found on compilation of jabberd14,
+ignored otherwise), DEFLATE for compression using the deflate/gzip algorithm,
+NULL for no compression. The LZO algorithm might have a better performance
+than the DEFLATE algorithm.
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:mac
+This setting is used to specify which MAC algorithms should be used and in
+which order they should be prefered. If you omit this setting, the algorithms
+and their preference are defined by the used TLS library (GnuTLS) itself.
+Place the list of mac algorithms in the order of their preference separated by
+whitespace as content of this element. Recognized values are: NULL (for using
+no MAC), MD5, SHA1, RMD160, MD2 (not recommended), SHA256, SHA386, SHA512.
+This setting is for expert users only. Normally you want to leave the
+defaults. (SHA256, SHA386 and SHA512 are only present if the underlying TLS
+library support them.)
+.TP
+.B TLS setting: cfg:jabber/cfg:io/cfg:tls/cfg:credentials/cfg:certtypes
+This setting is used to specify which certificate types should be used and in
+which order they should be prefered. If you omit this setting, the types and
+their preference are defined by the used TLS library (GnuTLS) itself. With
+current versions of GnuTLS this means only supporting X.509 certificates,
+which is what you currently normally want to use. Place the list of types in
+the order of their preference separated by whitespace as content of this
+element. Recognized values are: X.509 for X.509 certificates and OpenPGP for
+using OpenPGP keys as certificates.
+.SH AUTHOR
+jabberd14 project

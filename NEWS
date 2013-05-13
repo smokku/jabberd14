@@ -1,0 +1,176 @@
+Version 1.6.1 - not released yet
+
+Changes in administration of the server
+    * jabberd14 is now using the GnuTLS library instead of OpenSSL
+    * Support for wildcards in certificates
+    * Support for TLS 1.1
+    * Support for TLS 1.2 (if supported by your GnuTLS version)
+    * Support for DH key exchanges also when being the server side
+    * Support for stream compression in the TLS layer
+    * Support for loading certificate revocation lists
+    * Support for OpenPGP keys
+    * mod_filter has to be removed from the JSM configuration (it was already
+      just an empty dummy implementation in jabberd14 1.6.0)
+
+Version 1.6.0 - 2006-12-24
+
+New features and changes visible to the user
+    * Support for Privacy Lists (RFC3921 and XEP-0016)
+    * jabberd14 can localize the messages it sends to users to different
+      languages
+    * SASL authentication is possible if jabberd14 is used together with
+      jadc2s (at least the following mechanisms should be supported:
+      CRAM-MD5, PLAIN, GSSAPI, DIGEST-MD5, NTLM, SRP, OTP, KERBEROS_V4)
+    * Support for Flexible Offline Message Retrieval (XEP-0013)
+    * Support for XMPP Ping (XEP-0199)
+    * jabberd14 now handles XML namespaces
+    * jabberd14 now handles xml:lang attributes defined on the stream root
+      element, declaring the default language of the stream. If a stanza does
+      not redeclare the language, this language is passed along with the
+      stanza.
+    * The full stanza that requests subscription to a user is passed
+      to this user, even if it has been stored offline. In addition the
+      request is stamped if the time of the request, if it is delivered
+      from offline storage.
+    * FIX: Handling of presences with negative priority had bugs, e.g.
+      messages were not delivered when changing from negative to
+      non-negative priority.
+
+Changes in administration of the server
+    * Easier integration of jabberd14 into web projects, by having additional
+      data available in the database (e.g. presence information can now
+      be read by a web page with a single SQL SELECT statement)
+    * New base handler base_dir that can periodically check a directory for
+      *.stanza files. These files are read, parsed, the content is
+      processed as a stanza, and the file is deleted afterwards. This can
+      be useful to inject messages and other stanzas to the server.
+      Stanzas sent to the handler are written as files using the *.out
+      extension. The directories for reading and writing are configured
+      using the <in/> and <out/> elements inside the <dir/> element.
+    * jabberd14 does not cache passwords in the session manager anymore,
+      you can now just update passwords in SQL and they are used instantly.
+      You can also just insert a password in your SQL database to create a
+      new account for a user.
+    * It is possible to block account names from being registered and
+      to enforce minimum and maximum lengths of the username on
+      registration of new accounts
+    * After an account has been deleted by the user, the JabberID is blocked
+      against reregistrations for half a year.
+    * jabberd14 can now easily migrate from old filespools (xdb_file) to
+      newer storage handlers by reconfiguring the server and then importing
+      the old data (-I command line option)
+    * The session manager of jabberd14 can no be restarted without users
+      sessions being dropped. This allows reconfiguring of the session manager
+      while it is serving users.
+    * Jabberd14 now understands the protocol between c2s and session manager
+      components of jabberd2. This allows development and usage of
+      c2s components for both server implementations.
+    * Settings in the dialback component configuration for disabling
+      xmpp streams or disabling tls now also affect subdomains of the
+      configured host. It is now also possible to require s2s connections
+      to some or all other hosts to be encrypted.
+    * Jabberd14 now supports SASL EXTERNAL authentication using TLS
+      certificates on s2s links.
+    * xdb_sql can be configured to execute an SQL query just after a
+      connection to the database server has been established or reestablished.
+      This is useful for example if you are using MySQL 4.1+ and want to
+      set your used charset ("SET NAMES utf8").
+    * jabberd14 now uses libpopt for command line parsing.
+    * jabberd14 now detects stale pidfiles, and ignores them.
+    * The list of online sessions has to be fetched using service discovery
+      instead of browsing now.
+    * Removed support for the jabber:iq:admin namespace.
+    * Disabled support for the jabber:iq:agent and jabber:iq:agents in the
+      default configuration file.
+    * Removed support for the jabber:iq:filter namespace (which had already
+      been disabled in the default configuration of jabberd14 1.4.4).
+    * Removed the mod_groups module.
+    * jabberd14 automatically generates the list of supported features for
+      a reply to a service discovery request. There is no need anymore to
+      configure a disco result in the configuration file.
+
+
+
+Version 1.4.4 - 2005-04-16
+
+Changes in compiling and installing jabberd
+    * Jabberd14 now uses an automake/autoconf build environment, so you
+      will use "make install" after compiling jabberd and after that
+      you can now delete the source.
+    * Jabberd14 now requires at least openssl version 0.9.7 to be build with
+      support for SSL/TLS.
+
+Changes in administration of the server
+    * Jabberd14 now supports encrypted connections using the STARTTLS
+      stream feature of XMPP.
+    * The activation of debugging output has been changed: you can either
+      activate debugging in the configuration file or in the command line
+      using the -D option (that now takes an argument). You can even change
+      the debugging settings at the configuration file while jabberd is
+      running. After you changed them send a HUP signal to jabberd and
+      it will reread them from the configuration.
+    * The size of the files handled by xdb_file can be limited. This prevents
+      spool files from getting to big if a user subscribes to a feed and stops
+      using his account. Incoming messages will get bounced with an error if
+      the spool file of this user is full.
+    * The xdb_file module allows two directory layouts. The classic jabberd14
+      layout with one big directory containing all files for one domain, and
+      the layout adopted from wpjabber, where the files are distributed over
+      256 * 256 different directories, improoving performance on filesystems,
+      that are not well suited for large directories.
+    * There is a small utility xdbfiletool that helps accessing xdb_file's
+      new directory layout and that can convert old spools to the new
+      format.
+    * jabberd14 has a new xdb module for storing data in SQL databases,
+      currently mysql and postgresql are supported
+    * Support for legacy jabberd 1.0 server to server connections is now
+      removed completely as this old protocol allowed spoofing of sender
+      addresses. You should not need this protocol anymore anyway.
+    * Jabberd14 will now try to establish s2s connections not only on the
+      first IPv4/IPv6 address it finds in DNS but on any IPv4/IPv6 address,
+      that can be found for the first matching service. (It will not fall
+      back to pure AAAA or A records if there has been a SRV record for
+      any configured service.)
+      This will now allow a jabberd14, that has been configured with
+      --enable-ipv6, to be used on systems without IPv6 routing as well.
+    * Jabberd14 now supports clustering of the s2s component. The distribution
+      among the components for incoming connections has to be managed using
+      DNS records. For outgoing connections the DNS resolver (dnsrv) is
+      responsible for distributing the connections among the components.
+    * The logging of s2s failures has been improved.
+    * Jabberd14 is now able to send log messages to the syslog.
+    * The welcome and the auto-reply message in the jabberd14 configuration
+      file can be configured in additional languages and an XMPP compatible
+      client will display the appropriate version.
+    * New base handler <unsubscribe/> which bounces messages and iqs and sends
+      unsubscribes/unsubscribeds as reply to presence stanzas. Intended to be
+      used as a replacement for deinstalled transports.
+    * Presence information can be stored in xdb and therefore (using xdb_sql)
+      in an SQL table. The stored presence information is not used by
+      jabberd itself, but can be used by other applications.
+    * Messages can be dumped to xdb storage, this can be used to implement
+      logging of exchanged messages.
+    * It can be configured which types of messages are to be stored offline,
+      e.g. an server administrator can decide not to store headline messages
+      in offline storage.
+    * It can be configured which ciphers and versions of SSL/TLS jabberd is
+      allowed to use.
+
+Changes in features visible to the user
+    * Better XMPP compatibility: JIDs are prepared by the applicable
+      stringprep profiles; internationalized domain names (IDNs) are
+      supported; subscription state changes are only made if allowed, contacts
+      cannot push themself on a user's roster; correct stanza errors are
+      created.
+    * Jabberd14 now handles negative priorities and won't consider sessions
+      with negative priority for default delivery.
+    * The server will now unsubscribe all subscriptions when an user
+      unregisters his account.
+    * If a stanza could not delivered to the recipient, the error message
+      that is sent back to the user will contain more information on why
+      this happened.
+
+Problem fixes:
+    * earlier version of jabberd14 sent out two presences for a user
+      that came online, this is fixed - as well as that presences got
+      stamped several times if the user was online with multiple resources.

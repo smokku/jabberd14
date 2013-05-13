@@ -1,0 +1,25 @@
+after jabberd14 1.6.1
+=====================
+
+- SASL c2s without jadc2s add-on (XMPP)
+- Session manager clustering
+- Service discovery on all components
+- Pinging users, that are inactive for a long time
+- TLS session resumption
+- remove dependancy on libpth, and support epoll afterwards
+
+- object oriented C++ interface for components and session manager
+  modules
+- scripting API to write components and session manager modules
+  (perl or python, maybe ruby?)
+- true dynamic config
+
+- fix cygwin build
+- allow <jabberd:include/> in configuration to include directories
+  (including all files in the directory)
+- allowing some actions only over secured connection (auth, register)
+- admin interface especially to change user passwords (XEP-0133)
+- http binding (maybe only in jadc2s)
+- other xdb modules (ldap, bdbxml)
+- remove global variables
+- change threading library
